@@ -1,11 +1,13 @@
 import React, { Fragment, FunctionComponent } from 'react';
 
 import LoadingSpinner from './LoadingSpinner';
+import { TranslatedString } from '../../locale';
 
 export interface LoadingOverlayProps {
     isLoading: boolean;
     hideContentWhenLoading?: boolean;
     unmountContentWhenLoading?: boolean;
+    creatingEpicorOrder?: boolean;
 }
 
 const LoadingOverlay: FunctionComponent<LoadingOverlayProps> = ({
@@ -13,11 +15,15 @@ const LoadingOverlay: FunctionComponent<LoadingOverlayProps> = ({
     hideContentWhenLoading,
     unmountContentWhenLoading,
     isLoading,
+    creatingEpicorOrder
 }) => {
     if (hideContentWhenLoading || unmountContentWhenLoading) {
         return (
             <Fragment>
                 <LoadingSpinner isLoading={ isLoading } />
+                {(creatingEpicorOrder)?<div className="cc-epicor-order-creation"><span className="label">
+                    <TranslatedString id="common.create_epicor_order_text" />
+                </span></div>:""}
                 { unmountContentWhenLoading && isLoading ? null :
                     <div
                         style={ {

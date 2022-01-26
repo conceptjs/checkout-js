@@ -16,6 +16,9 @@ import ShippingForm from './ShippingForm';
 import ShippingHeader from './ShippingHeader';
 import { SingleShippingFormValues } from './SingleShippingForm';
 
+import { storage } from '../coldChainCheckout/utils';
+var _ = require('underscore');
+
 export interface ShippingProps {
     isBillingSameAsShipping: boolean;
     cartHasChanged: boolean;
@@ -26,6 +29,7 @@ export interface ShippingProps {
     onUnhandledError(error: Error): void;
     onSignIn(): void;
     navigateNextStep(isBillingSameAsShipping: boolean): void;
+    shippingAddress?: Address | any;
 }
 
 export interface WithCheckoutShippingProps {
@@ -42,7 +46,7 @@ export interface WithCheckoutShippingProps {
     isLoading: boolean;
     isShippingStepPending: boolean;
     methodId?: string;
-    shippingAddress?: Address;
+    //shippingAddress?: Address | any;
     shouldShowAddAddressInCheckout: boolean;
     shouldShowMultiShipping: boolean;
     shouldShowOrderComments: boolean;
@@ -63,6 +67,8 @@ export interface WithCheckoutShippingProps {
 
 interface ShippingState {
     isInitializing: boolean;
+    ccAddress: Array<any>;
+    myShippingAddress?: Address | undefined;
 }
 
 class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, ShippingState> {
@@ -71,6 +77,8 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
 
         this.state = {
             isInitializing: true,
+            ccAddress: [],
+            myShippingAddress: props.shippingAddress
         };
     }
 
@@ -88,12 +96,35 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
                 loadShippingOptions(),
             ]);
 
+            var address = JSON.parse(storage.CCAddresses.getValue());
+
+            if (address) {
+                this.setState({
+                    ccAddress: _.values(address.addresses)
+                })
+
+                this.props.customer.addresses = _.values(address.addresses);
+                //if (!this.props.shippingAddress || this.props.shippingAddress.customFields.length == 0){
+                //    this.setState({
+                //        shippingAddress: address.addresses[address.defaultShippingId]
+                //    })
+                //}
+            }
+
             onReady();
         } catch (error) {
             onUnhandledError(error);
         } finally {
             this.setState({ isInitializing: false });
         }
+    }
+
+    async componentWillReceiveProps(nextProps:any): Promise<void> {
+        //if (!isEqualAddress(this.props.shippingAddress, nextProps.shippingAddress)) {
+            this.setState({
+                myShippingAddress: nextProps.shippingAddress
+            })
+        //}
     }
 
     render(): ReactNode {
@@ -108,39 +139,43 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
             deinitializeShippingMethod,
             isMultiShippingMode,
             onToggleMultiShipping,
+            shippingAddress,
             ...shippingFormProps
         } = this.props;
 
         const {
             isInitializing,
+            ccAddress,
+            myShippingAddress
         } = this.state;
 
         return (
             <div className="checkout-form">
                 <ShippingHeader
-                    isGuest={ isGuest }
-                    isMultiShippingMode={ isMultiShippingMode }
-                    onMultiShippingChange={ this.handleMultiShippingModeSwitch }
-                    shouldShowMultiShipping={ shouldShowMultiShipping }
+                    isGuest={isGuest}
+                    isMultiShippingMode={isMultiShippingMode}
+                    onMultiShippingChange={this.handleMultiShippingModeSwitch}
+                    shouldShowMultiShipping={shouldShowMultiShipping}
                 />
 
                 <LoadingOverlay
-                    isLoading={ isInitializing }
+                    isLoading={isInitializing}
                     unmountContentWhenLoading
                 >
                     <ShippingForm
-                        { ...shippingFormProps }
-                        addresses={ customer.addresses }
-                        deinitialize={ deinitializeShippingMethod }
-                        initialize={ initializeShippingMethod }
-                        isBillingSameAsShipping = { isBillingSameAsShipping }
-                        isGuest={ isGuest }
-                        isMultiShippingMode={ isMultiShippingMode }
-                        onMultiShippingSubmit={ this.handleMultiShippingSubmit }
-                        onSingleShippingSubmit={ this.handleSingleShippingSubmit }
-                        onUseNewAddress={ this.handleUseNewAddress }
-                        shouldShowSaveAddress={ !isGuest }
-                        updateAddress={ updateShippingAddress }
+                        {...shippingFormProps}
+                        addresses={ccAddress}
+                        deinitialize={deinitializeShippingMethod}
+                        initialize={initializeShippingMethod}
+                        isBillingSameAsShipping={isBillingSameAsShipping}
+                        isGuest={isGuest}
+                        isMultiShippingMode={isMultiShippingMode}
+                        onMultiShippingSubmit={this.handleMultiShippingSubmit}
+                        onSingleShippingSubmit={this.handleSingleShippingSubmit}
+                        onUseNewAddress={this.handleUseNewAddress}
+                        shouldShowSaveAddress={!isGuest}
+                        updateAddress={updateShippingAddress}
+                        shippingAddress={myShippingAddress}
                     />
                 </LoadingOverlay>
             </div>
@@ -173,7 +208,7 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
     };
 
     private handleSingleShippingSubmit: (values: SingleShippingFormValues) => void = async ({
-        billingSameAsShipping,
+        //billingSameAsShipping,
         shippingAddress: addressValues,
         orderComment,
     }) => {
@@ -189,6 +224,8 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
             methodId,
         } = this.props;
 
+        const localBillingSameAsShipping = false;
+
         const updatedShippingAddress = addressValues && mapAddressFromFormValues(addressValues);
         const promises: Array<Promise<CheckoutSelectors>> = [];
         const hasRemoteBilling = this.hasRemoteBilling(methodId);
@@ -197,7 +234,7 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
             promises.push(updateShippingAddress(updatedShippingAddress || {}));
         }
 
-        if (billingSameAsShipping &&
+        if (localBillingSameAsShipping &&
             updatedShippingAddress &&
             !isEqualAddress(updatedShippingAddress, billingAddress) &&
             !hasRemoteBilling
@@ -212,7 +249,7 @@ class Shipping extends Component<ShippingProps & WithCheckoutShippingProps, Ship
         try {
             await Promise.all(promises);
 
-            navigateNextStep(billingSameAsShipping);
+            navigateNextStep(localBillingSameAsShipping);
         } catch (error) {
             onUnhandledError(error);
         }
@@ -289,7 +326,7 @@ export function mapToShippingProps({
             getConfig,
             getCustomer,
             getConsignments,
-            getShippingAddress,
+            //getShippingAddress,
             getBillingAddress,
             getShippingAddressFields,
             getShippingCountries,
@@ -349,7 +386,7 @@ export function mapToShippingProps({
         countriesWithAutocomplete.push('GB');
     }
 
-    const shippingAddress = !shouldShowMultiShipping && consignments.length > 1 ? undefined : getShippingAddress();
+    //const shippingAddress = !shouldShowMultiShipping && consignments.length > 1 ? undefined : getShippingAddress();
 
     return {
         assignItem: checkoutService.assignItemsToAddress,
@@ -373,7 +410,7 @@ export function mapToShippingProps({
         loadShippingAddressFields: checkoutService.loadShippingAddressFields,
         loadShippingOptions: checkoutService.loadShippingOptions,
         methodId,
-        shippingAddress,
+        //shippingAddress,
         shouldShowMultiShipping,
         shouldShowAddAddressInCheckout: features['CHECKOUT-4726.add_address_in_multishipping_checkout'],
         shouldShowOrderComments: enableOrderComments,

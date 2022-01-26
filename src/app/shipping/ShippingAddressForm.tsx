@@ -1,12 +1,13 @@
 import { Address, Consignment, Country, CustomerAddress, FormField } from '@bigcommerce/checkout-sdk';
 import React, { Component, ReactNode } from 'react';
 
-import {  isValidCustomerAddress, AddressForm, AddressSelect } from '../address';
+import { AddressForm, AddressSelect } from '../address';
 import { connectFormik, ConnectFormikProps } from '../common/form';
 import { Fieldset } from '../ui/form';
 import { LoadingOverlay } from '../ui/loading';
 
 import { SingleShippingFormValues } from './SingleShippingForm';
+import { TranslatedString} from '../locale';
 
 export interface ShippingAddressFormProps {
     addresses: CustomerAddress[];
@@ -46,37 +47,45 @@ class ShippingAddressForm extends Component<ShippingAddressFormProps & ConnectFo
         } = this.props;
 
         const hasAddresses = addresses && addresses.length > 0;
-        const hasValidCustomerAddress = isValidCustomerAddress(shippingAddress, addresses, formFields);
+        //const hasValidCustomerAddress = isValidCustomerAddress(shippingAddress, addresses, formFields);
+        const hasValidCustomerAddress = true;
 
         return (
             <Fieldset id="checkoutShippingAddress">
                 { hasAddresses &&
                     <Fieldset id="shippingAddresses">
-                        <LoadingOverlay isLoading={ isLoading }>
+                        <LoadingOverlay isLoading={isLoading}>
                             <AddressSelect
-                                addresses={ addresses }
-                                onSelectAddress={ onAddressSelect }
-                                onUseNewAddress={ onUseNewAddress }
-                                selectedAddress={ hasValidCustomerAddress ? shippingAddress : undefined }
+                                addresses={addresses}
+                                onSelectAddress={onAddressSelect}
+                                onUseNewAddress={onUseNewAddress}
+                                selectedAddress={hasValidCustomerAddress ? shippingAddress : undefined}
                             />
                         </LoadingOverlay>
-                    </Fieldset> }
+                    </Fieldset>}
 
                 { !hasValidCustomerAddress &&
-                    <LoadingOverlay isLoading={ isLoading } unmountContentWhenLoading>
+
+                    <div className="shippingOptions-panel optimizedCheckout-overlay">
+                        <p className="shippingOptions-panel-message optimizedCheckout-primaryContent">
+                            <TranslatedString id="shipping.noAddress_label" />
+                        </p>
+                    </div>
+                    &&
+                    <LoadingOverlay isLoading={isLoading} unmountContentWhenLoading>
                         <AddressForm
-                            countries={ countries }
-                            countriesWithAutocomplete={ countriesWithAutocomplete }
-                            countryCode={ formAddress && formAddress.countryCode }
-                            fieldName={ addressFieldName }
-                            formFields={ formFields }
-                            googleMapsApiKey={ googleMapsApiKey }
-                            onAutocompleteToggle={ this.handleAutocompleteToggle }
-                            onChange={ this.handleChange }
-                            setFieldValue={ this.setFieldValue }
-                            shouldShowSaveAddress={ shouldShowSaveAddress }
+                            countries={countries}
+                            countriesWithAutocomplete={countriesWithAutocomplete}
+                            countryCode={formAddress && formAddress.countryCode}
+                            fieldName={addressFieldName}
+                            formFields={formFields}
+                            googleMapsApiKey={googleMapsApiKey}
+                            onAutocompleteToggle={this.handleAutocompleteToggle}
+                            onChange={this.handleChange}
+                            setFieldValue={this.setFieldValue}
+                            shouldShowSaveAddress={shouldShowSaveAddress}
                         />
-                    </LoadingOverlay> }
+                    </LoadingOverlay>}
             </Fieldset>
         );
     }

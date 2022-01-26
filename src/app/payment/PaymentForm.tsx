@@ -19,6 +19,9 @@ import PaymentRedeemables from './PaymentRedeemables';
 import PaymentSubmitButton from './PaymentSubmitButton';
 import SpamProtectionField from './SpamProtectionField';
 
+import { PoNumber } from '../coldChainCheckout';
+import { TermsCode } from '../coldChainCheckout';
+
 export interface PaymentFormProps {
     availableStoreCredit?: number;
     defaultGatewayId?: string;
@@ -147,6 +150,10 @@ const PaymentForm: FunctionComponent<PaymentFormProps & FormikProps<PaymentFormV
             />
 
             <PaymentRedeemables />
+
+            <TermsCode />
+
+            <PoNumber />
 
             { isTermsConditionsRequired && <TermsConditions
                 termsConditionsText={ termsConditionsText }

@@ -46,14 +46,14 @@ class ShippingOptionsForm extends PureComponent<ShippingOptionsFormProps & Formi
             !shouldShowShippingOptions
         ) {
             return (
-                <LoadingOverlay isLoading={ isLoading() }>
+                <LoadingOverlay isLoading={isLoading()}>
                     { this.renderNoShippingOptions(
                         <TranslatedString
-                            id={ methodId || isMultiShippingMode ?
+                            id={methodId || isMultiShippingMode ?
                                 'shipping.select_shipping_address_text' :
-                                'shipping.enter_shipping_address_text' }
+                                'shipping.enter_shipping_address_text'}
                         />
-                    ) }
+                    )}
                 </LoadingOverlay>
             );
         }
@@ -61,24 +61,24 @@ class ShippingOptionsForm extends PureComponent<ShippingOptionsFormProps & Formi
         return <>
             { consignments
                 .map(consignment => (
-                <div className="shippingOptions-container form-fieldset" key={ consignment.id }>
-                        { isMultiShippingMode && this.renderConsignment(consignment) }
+                    <div className="shippingOptions-container form-fieldset" key={consignment.id}>
+                        { isMultiShippingMode && this.renderConsignment(consignment)}
 
                         <ShippingOptionsList
-                            consignmentId={ consignment.id }
-                            inputName={ getRadioInputName(consignment.id) }
-                            isLoading={ isLoading(consignment.id) }
-                            onSelectedOption={ selectShippingOption }
-                            selectedShippingOptionId={ consignment.selectedShippingOption && consignment.selectedShippingOption.id }
-                            shippingOptions={ consignment.availableShippingOptions }
+                            consignmentId={consignment.id}
+                            inputName={getRadioInputName(consignment.id)}
+                            isLoading={isLoading(consignment.id)}
+                            onSelectedOption={selectShippingOption}
+                            selectedShippingOptionId={consignment.selectedShippingOption && consignment.selectedShippingOption.id}
+                            shippingOptions={consignment.availableShippingOptions}
                         />
 
-                        { (!consignment.availableShippingOptions || !consignment.availableShippingOptions.length) &&
-                            <LoadingOverlay hideContentWhenLoading isLoading={ isLoading(consignment.id) }>
-                                { this.renderNoShippingOptions(invalidShippingMessage) }
-                            </LoadingOverlay> }
+                        { (!consignment.availableShippingOptions || !consignment.availableShippingOptions.length) && false &&
+                            <LoadingOverlay hideContentWhenLoading isLoading={isLoading(consignment.id)}>
+                                {this.renderNoShippingOptions(invalidShippingMessage)}
+                            </LoadingOverlay>}
                     </div>
-                )) }
+                ))}
         </>;
     }
 
@@ -111,7 +111,7 @@ class ShippingOptionsForm extends PureComponent<ShippingOptionsFormProps & Formi
         return (
             <div className="shippingOptions-panel optimizedCheckout-overlay">
                 <p className="shippingOptions-panel-message optimizedCheckout-primaryContent">
-                    { message }
+                    {message}
                 </p>
             </div>
         );
@@ -126,11 +126,11 @@ class ShippingOptionsForm extends PureComponent<ShippingOptionsFormProps & Formi
                     <TranslatedString id="shipping.shipping_address_heading" />
                 </strong>
 
-                <StaticAddress address={ consignment.shippingAddress } />
+                <StaticAddress address={consignment.shippingAddress} />
 
                 <StaticConsignmentItemList
-                    cart={ cart }
-                    consignment={ consignment }
+                    cart={cart}
+                    consignment={consignment}
                 />
             </div>
         );

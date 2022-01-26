@@ -1,8 +1,9 @@
-import { Address, Cart, CartChangedError, CheckoutParams, CheckoutSelectors, Consignment, EmbeddedCheckoutMessenger, EmbeddedCheckoutMessengerOptions, FlashMessage, Promotion, RequestOptions, StepTracker } from '@bigcommerce/checkout-sdk';
+import { Address, Cart, CartChangedError, CheckoutParams, CheckoutSelectors, CheckoutService, Consignment, EmbeddedCheckoutMessenger, EmbeddedCheckoutMessengerOptions, FlashMessage, Promotion, RequestOptions, StepTracker } from '@bigcommerce/checkout-sdk';
 import classNames from 'classnames';
 import { find, findIndex } from 'lodash';
 import React, { lazy, Component, ReactNode } from 'react';
 
+import CCCheckout from '../coldChainCheckout';
 import { StaticBillingAddress } from '../billing';
 import { EmptyCartMessage } from '../cart';
 import { isCustomError, CustomError, ErrorLogger, ErrorModal } from '../common/error';
@@ -23,6 +24,13 @@ import CheckoutStep from './CheckoutStep';
 import CheckoutStepStatus from './CheckoutStepStatus';
 import CheckoutStepType from './CheckoutStepType';
 import CheckoutSupport from './CheckoutSupport';
+import isEqualAddress from '../address/isEqualAddress';
+
+var _ = require('underscore');
+
+import ccService from '../coldChainCheckout/request';
+import { storage } from '../coldChainCheckout/utils';
+import { util } from '../coldChainCheckout/utils';
 
 const Billing = lazy(() => retry(() => import(
     /* webpackChunkName: "billing" */
@@ -75,6 +83,7 @@ export interface CheckoutState {
     isCartEmpty: boolean;
     isRedirecting: boolean;
     hasSelectedShippingOptions: boolean;
+    creatingEpicorOrder: boolean;
 }
 
 export interface WithCheckoutProps {
@@ -95,6 +104,7 @@ export interface WithCheckoutProps {
     clearError(error?: Error): void;
     loadCheckout(id: string, options?: RequestOptions<CheckoutParams>): Promise<CheckoutSelectors>;
     subscribeToConsignments(subscriber: (state: CheckoutSelectors) => void): () => void;
+    checkoutService: CheckoutService;
 }
 
 class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguageProps, CheckoutState> {
@@ -106,6 +116,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         isRedirecting: false,
         isMultiShippingMode: false,
         hasSelectedShippingOptions: false,
+        creatingEpicorOrder: false
     };
 
     private embeddedMessenger?: EmbeddedCheckoutMessenger;
@@ -127,6 +138,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             embeddedStylesheet,
             loadCheckout,
             subscribeToConsignments,
+            checkoutService
         } = this.props;
 
         try {
@@ -138,6 +150,14 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                     ] as any, // FIXME: Currently the enum is not exported so it can't be used here.
                 },
             });
+
+            await CCCheckout.customer.init(data, checkoutService);
+            var address = await ccService.api.getShippingAddress();
+            storage.CCAddresses.setValue(JSON.stringify(address));
+
+            address.billAddresses.countryCode = util.getCountryISOCodeFromName(address.billAddresses.country);
+            await checkoutService.updateBillingAddress(address.billAddresses);
+
             const { links: { siteLink = '' } = {} } = data.getConfig() || {};
             const errorFlashMessages = data.getFlashMessages('error') || [];
 
@@ -166,6 +186,29 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             this.stepTracker.trackCheckoutStarted();
 
             const consignments = data.getConsignments();
+
+            /*
+            if (consignments && consignments.length > 0 && consignments[0].shippingAddress &&
+                consignments[0].shippingAddress.customFields.length > 0) {
+                var selectedShippingAddress = _.find(_.values(address.addresses), function(a:any){
+                    return isEqualAddress(consignments[0].shippingAddress, a);
+                })
+
+                if (!selectedShippingAddress){
+                    consignments[0].shippingAddress = address.addresses[address.defaultShippingId];
+                }
+                
+                storage.CCSelectShippingAddressId.setValue(consignments[0].shippingAddress.customFields[0].fieldValue);
+            }
+            */
+
+            if (this.props.steps.length == 4 && this.props.steps[2].isActive) {
+                this.props.steps[2].isActive = false;
+                this.props.steps[2].isComplete = true;
+                this.props.steps[3].isActive = true;
+                this.stepTracker.trackStepCompleted("billing");
+            }
+
             const cart = data.getCart();
             const hasMultiShippingEnabled = data.getConfig()?.checkoutSettings?.hasMultiShippingEnabled;
             const isMultiShippingMode = !!cart &&
@@ -189,18 +232,18 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
         if (error) {
             if (isCustomError(error)) {
-                errorModal = <ErrorModal error={ error } onClose={ this.handleCloseErrorModal } title={ error.title } />;
+                errorModal = <ErrorModal error={error} onClose={this.handleCloseErrorModal} title={error.title} />;
             } else {
-                errorModal = <ErrorModal error={ error } onClose={ this.handleCloseErrorModal } />;
+                errorModal = <ErrorModal error={error} onClose={this.handleCloseErrorModal} />;
             }
         }
 
         return <>
-            <div className={ classNames({ 'is-embedded': isEmbedded() }) }>
+            <div className={classNames({ 'is-embedded': isEmbedded() })}>
                 <div className="layout optimizedCheckout-contentPrimary">
-                    { this.renderContent() }
+                    {this.renderContent()}
                 </div>
-                { errorModal }
+                {errorModal}
             </div>
 
         </>;
@@ -219,13 +262,14 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             defaultStepType,
             isCartEmpty,
             isRedirecting,
+            creatingEpicorOrder
         } = this.state;
 
         if (isCartEmpty) {
             return (
                 <EmptyCartMessage
-                    loginUrl={ loginUrl }
-                    waitInterval={ 3000 }
+                    loginUrl={loginUrl}
+                    waitInterval={3000}
                 />
             );
         }
@@ -233,44 +277,45 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         return (
             <LoadingOverlay
                 hideContentWhenLoading
-                isLoading={ isRedirecting }
+                isLoading={isRedirecting}
+                creatingEpicorOrder={creatingEpicorOrder}
             >
                 <div className="layout-main">
-                    <LoadingNotification isLoading={ isPending } />
+                    <LoadingNotification isLoading={isPending || isRedirecting} creatingEpicorOrder={creatingEpicorOrder}/>
 
-                    <PromotionBannerList promotions={ promotions } />
+                    <PromotionBannerList promotions={promotions} />
 
                     <ol className="checkout-steps">
-                        { steps
+                        {steps
                             .filter(step => step.isRequired)
                             .map(step => this.renderStep({
                                 ...step,
-                                isActive: activeStepType ? activeStepType === step.type : defaultStepType === step.type,
-                            })) }
+                                isActive: (activeStepType ? activeStepType === step.type : defaultStepType === step.type),
+                            }))}
                     </ol>
                 </div>
 
-                { this.renderCartSummary() }
+                { this.renderCartSummary()}
             </LoadingOverlay>
         );
     }
 
     private renderStep(step: CheckoutStepStatus): ReactNode {
         switch (step.type) {
-        case CheckoutStepType.Customer:
-            return this.renderCustomerStep(step);
+            case CheckoutStepType.Customer:
+                return this.renderCustomerStep(step);
 
-        case CheckoutStepType.Shipping:
-            return this.renderShippingStep(step);
+            case CheckoutStepType.Shipping:
+                return this.renderShippingStep(step);
 
-        case CheckoutStepType.Billing:
-            return this.renderBillingStep(step);
+            case CheckoutStepType.Billing:
+                return this.renderBillingStep(step);
 
-        case CheckoutStepType.Payment:
-            return this.renderPaymentStep(step);
+            case CheckoutStepType.Payment:
+                return this.renderPaymentStep(step);
 
-        default:
-            return null;
+            default:
+                return null;
         }
     }
 
@@ -283,32 +328,32 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
         return (
             <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="customer.customer_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                suggestion={ <CheckoutSuggestion /> }
+                {...step}
+                heading={<TranslatedString id="customer.customer_heading" />}
+                key={step.type}
+                onEdit={this.handleEditStep}
+                onExpanded={this.handleExpanded}
+                suggestion={<CheckoutSuggestion />}
                 summary={
                     <CustomerInfo
-                        onSignOut={ this.handleSignOut }
-                        onSignOutError={ this.handleError }
+                        onSignOut={this.handleSignOut}
+                        onSignOutError={this.handleError}
                     />
                 }
             >
                 <LazyContainer>
                     <Customer
-                        checkEmbeddedSupport={ this.checkEmbeddedSupport }
-                        isEmbedded={ isEmbedded() }
-                        onAccountCreated={ this.navigateToNextIncompleteStep }
-                        onChangeViewType={ this.setCustomerViewType }
-                        onContinueAsGuest={ this.navigateToNextIncompleteStep }
-                        onContinueAsGuestError={ this.handleError }
-                        onReady={ this.handleReady }
-                        onSignIn={ this.navigateToNextIncompleteStep }
-                        onSignInError={ this.handleError }
-                        onUnhandledError={ this.handleUnhandledError }
-                        viewType={ customerViewType }
+                        checkEmbeddedSupport={this.checkEmbeddedSupport}
+                        isEmbedded={isEmbedded()}
+                        onAccountCreated={this.navigateToNextIncompleteStep}
+                        onChangeViewType={this.setCustomerViewType}
+                        onContinueAsGuest={this.navigateToNextIncompleteStep}
+                        onContinueAsGuestError={this.handleError}
+                        onReady={this.handleReady}
+                        onSignIn={this.navigateToNextIncompleteStep}
+                        onSignInError={this.handleError}
+                        onUnhandledError={this.handleUnhandledError}
+                        viewType={customerViewType}
                     />
                 </LazyContainer>
             </CheckoutStep>
@@ -331,33 +376,51 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             return;
         }
 
+        if (storage.CCAddresses.getValue() && consignments && consignments.length > 0 && consignments[0].shippingAddress &&
+        consignments[0].shippingAddress.customFields && consignments[0].shippingAddress.customFields.length > 0) {
+            var address = JSON.parse(storage.CCAddresses.getValue());
+            var selectedShippingAddress = _.find(_.values(address.addresses), function(a:any){
+                return isEqualAddress(consignments[0].shippingAddress, a);
+            })
+
+            if (!selectedShippingAddress && address.defaultShippingId){
+                consignments[0].shippingAddress = address.addresses[address.defaultShippingId];
+            }
+            
+            if (consignments[0].shippingAddress){
+                storage.CCSelectShippingAddressId.setValue(consignments[0].shippingAddress.customFields[0].fieldValue);
+            }
+        }
+
         return (
             <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="shipping.shipping_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                summary={ consignments.map(consignment =>
-                    <div className="staticConsignmentContainer" key={ consignment.id }>
+                {...step}
+                heading={<TranslatedString id="shipping.shipping_heading" />}
+                key={step.type}
+                onEdit={this.handleEditStep}
+                onExpanded={this.handleExpanded}
+                summary={consignments.map(consignment =>
+                    <div className="staticConsignmentContainer" key={consignment.id}>
                         <StaticConsignment
-                            cart={ cart }
-                            compactView={ consignments.length < 2 }
-                            consignment={ consignment }
+                            cart={cart}
+                            compactView={consignments.length < 2}
+                            consignment={consignment}
+                            shippingAddress={consignment.shippingAddress}
                         />
-                    </div>) }
+                    </div>)}
             >
                 <LazyContainer>
                     <Shipping
-                        cartHasChanged={ hasCartChanged }
-                        isBillingSameAsShipping={ isBillingSameAsShipping }
-                        isMultiShippingMode={ isMultiShippingMode }
-                        navigateNextStep={ this.handleShippingNextStep }
-                        onCreateAccount={ this.handleShippingCreateAccount }
-                        onReady={ this.handleReady }
-                        onSignIn={ this.handleShippingSignIn }
-                        onToggleMultiShipping={ this.handleToggleMultiShipping }
-                        onUnhandledError={ this.handleUnhandledError }
+                        cartHasChanged={hasCartChanged}
+                        isBillingSameAsShipping={isBillingSameAsShipping}
+                        isMultiShippingMode={isMultiShippingMode}
+                        navigateNextStep={this.handleShippingNextStep}
+                        onCreateAccount={this.handleShippingCreateAccount}
+                        onReady={this.handleReady}
+                        onSignIn={this.handleShippingSignIn}
+                        onToggleMultiShipping={this.handleToggleMultiShipping}
+                        onUnhandledError={this.handleUnhandledError}
+                        shippingAddress={(consignments && consignments.length > 0)?consignments[0].shippingAddress:null}
                     />
                 </LazyContainer>
             </CheckoutStep>
@@ -365,22 +428,28 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
     }
 
     private renderBillingStep(step: CheckoutStepStatus): ReactNode {
-        const { billingAddress } = this.props;
+        //const { billingAddress } = this.props;
+
+        var address = JSON.parse(storage.CCAddresses.getValue());
+        if (address){
+            var billingAddress = address.billAddresses;
+        }
 
         return (
             <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="billing.billing_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
-                summary={ billingAddress && <StaticBillingAddress address={ billingAddress } /> }
+                {...step}
+                heading={<TranslatedString id="billing.billing_heading" />}
+                key={step.type}
+                onEdit={this.handleEditStep}
+                onExpanded={this.handleExpanded}
+                summary={billingAddress && <StaticBillingAddress address={billingAddress} />}
+                isEditable={false}
             >
                 <LazyContainer>
                     <Billing
-                        navigateNextStep={ this.navigateToNextIncompleteStep }
-                        onReady={ this.handleReady }
-                        onUnhandledError={ this.handleUnhandledError }
+                        navigateNextStep={this.navigateToNextIncompleteStep}
+                        onReady={this.handleReady}
+                        onUnhandledError={this.handleUnhandledError}
                     />
                 </LazyContainer>
             </CheckoutStep>
@@ -395,23 +464,24 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
         return (
             <CheckoutStep
-                { ...step }
-                heading={ <TranslatedString id="payment.payment_heading" /> }
-                key={ step.type }
-                onEdit={ this.handleEditStep }
-                onExpanded={ this.handleExpanded }
+                {...step}
+                heading={<TranslatedString id="payment.payment_heading" />}
+                key={step.type}
+                onEdit={this.handleEditStep}
+                onExpanded={this.handleExpanded}
             >
                 <LazyContainer>
                     <Payment
-                        checkEmbeddedSupport={ this.checkEmbeddedSupport }
-                        isEmbedded={ isEmbedded() }
-                        isUsingMultiShipping={ cart && consignments ? isUsingMultiShipping(consignments, cart.lineItems) : false }
-                        onCartChangedError={ this.handleCartChangedError }
-                        onFinalize={ this.navigateToOrderConfirmation }
-                        onReady={ this.handleReady }
-                        onSubmit={ this.navigateToOrderConfirmation }
-                        onSubmitError={ this.handleError }
-                        onUnhandledError={ this.handleUnhandledError }
+                        checkEmbeddedSupport={this.checkEmbeddedSupport}
+                        isEmbedded={isEmbedded()}
+                        isUsingMultiShipping={cart && consignments ? isUsingMultiShipping(consignments, cart.lineItems) : false}
+                        onCartChangedError={this.handleCartChangedError}
+                        onFinalize={this.navigateToOrderConfirmation}
+                        onReady={this.handleReady}
+                        onSubmit={this.navigateToOrderConfirmation}
+                        onSubmitError={this.handleError}
+                        onUnhandledError={this.handleUnhandledError}
+                        onCreatingEpicorOrder={this.setCreatingEpicorOrder}
                     />
                 </LazyContainer>
             </CheckoutStep>
@@ -433,7 +503,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                             <CartSummary />
                         </LazyContainer>
                     </aside>;
-                } }
+                }}
             </MobileView>
         );
     }
@@ -468,6 +538,10 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         this.setState({ isMultiShippingMode: !isMultiShippingMode });
     };
 
+    private setCreatingEpicorOrder: (flag:boolean) => void = flag => {
+        this.setState({ creatingEpicorOrder: flag, isRedirecting: flag  });
+    };
+
     private navigateToNextIncompleteStep: (options?: { isDefault?: boolean }) => void = options => {
         const { steps } = this.props;
         const activeStepIndex = findIndex(steps, { isActive: true });
@@ -484,6 +558,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
 
         this.navigateToStep(activeStep.type, options);
+
     };
 
     private navigateToOrderConfirmation: () => void = () => {
@@ -539,7 +614,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
     private handleExpanded: (type: CheckoutStepType) => void = type => {
         if (this.stepTracker) {
-           this.stepTracker.trackStepViewed(type);
+            this.stepTracker.trackStepViewed(type);
         }
     };
 
@@ -589,16 +664,25 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
 
         this.navigateToStep(CheckoutStepType.Customer);
+
+        CCCheckout.customer.logout();
     };
 
     private handleShippingNextStep: (isBillingSameAsShipping: boolean) => void = isBillingSameAsShipping => {
         this.setState({ isBillingSameAsShipping });
 
-        if (isBillingSameAsShipping) {
-            this.navigateToNextIncompleteStep();
-        } else {
-            this.navigateToStep(CheckoutStepType.Billing);
+        this.props.steps[2].isActive = false;
+        this.props.steps[2].isComplete = true;
+        this.props.steps[3].isActive = true;
+        if (this.stepTracker) {
+            this.stepTracker.trackStepCompleted("billing");
         }
+
+        //if (isBillingSameAsShipping) {
+        this.navigateToNextIncompleteStep();
+        //} else {
+        //this.navigateToStep(CheckoutStepType.Payment);
+        //}
     };
 
     private handleShippingSignIn: () => void = () => {

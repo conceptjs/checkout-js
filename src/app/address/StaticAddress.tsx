@@ -1,10 +1,10 @@
 import { Address, CheckoutSelectors, Country, FormField, ShippingInitializeOptions } from '@bigcommerce/checkout-sdk';
-import { isEmpty } from 'lodash';
+//import { isEmpty } from 'lodash';
 import React, { memo, FunctionComponent } from 'react';
 
 import { withCheckout, CheckoutContextProps } from '../checkout';
 
-import isValidAddress from './isValidAddress';
+//import isValidAddress from './isValidAddress';
 import localizeAddress from './localizeAddress';
 import AddressType from './AddressType';
 import './StaticAddress.scss';
@@ -25,14 +25,15 @@ interface WithCheckoutStaticAddressProps {
 
 const StaticAddress: FunctionComponent<StaticAddressEditableProps & WithCheckoutStaticAddressProps> = ({
     countries,
-    fields,
+    //fields,
     address: addressWithoutLocalization,
 }) => {
     const address = localizeAddress(addressWithoutLocalization, countries);
-    const isValid = !fields ? !isEmpty(address) : isValidAddress(
-        address,
-        fields.filter(field => !field.custom)
-    );
+    //const isValid = !fields ? !isEmpty(address) : isValidAddress(
+    //    address,
+    //    fields.filter(field => !field.custom)
+    //);
+    const isValid = true;
 
     return !isValid ? null : <div className="vcard checkout-address--static">
         {

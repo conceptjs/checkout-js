@@ -10,10 +10,12 @@ import { withLanguage, WithLanguageProps } from '../locale';
 import { Fieldset, Form, FormContext } from '../ui/form';
 
 import hasSelectedShippingOptions from './hasSelectedShippingOptions';
-import BillingSameAsShippingField from './BillingSameAsShippingField';
+//import BillingSameAsShippingField from './BillingSameAsShippingField';
 import ShippingAddress from './ShippingAddress';
 import { SHIPPING_ADDRESS_FIELDS } from './ShippingAddressFields';
 import ShippingFormFooter from './ShippingFormFooter';
+
+import { storage } from '../coldChainCheckout/utils';
 
 export interface SingleShippingFormProps {
     addresses: CustomerAddress[];
@@ -55,6 +57,30 @@ interface SingleShippingFormState {
 
 export const SHIPPING_AUTOSAVE_DELAY = 1700;
 
+/*
+const setDefaultShippingOption = (props:any) =>{
+    var defaultShippingOption = {
+        "additionalDescription": "",
+        "cost": 0,
+        "description": "Free Shipping",
+        "id": "4dcbf24f457dd67d5f89bcf374e0bc9b",
+        "imageUrl": "",
+        "isRecommended": true,
+        "transitTime": "",
+        "type": "freeshipping"
+    };
+    if (props.consignments && props.consignments.length > 0) {
+        if (!props.consignments[0].availableShippingOptions) {
+            props.consignments[0].availableShippingOptions = [];
+        }
+        if (props.consignments[0].availableShippingOptions?.length == 0) {
+            props.consignments[0].availableShippingOptions.push(defaultShippingOption);
+        }
+        props.consignments[0].selectedShippingOption = props.consignments[0].availableShippingOptions[0];
+    }
+}
+*/
+
 class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLanguageProps & FormikProps<SingleShippingFormValues>> {
     static contextType = FormContext;
 
@@ -70,7 +96,7 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
         super(props);
 
         const { updateAddress } = this.props;
-
+        
         this.debouncedUpdateAddress = debounce(async (address: Address, includeShippingOptions: boolean) => {
             try {
                 await updateAddress(address, {
@@ -116,46 +142,48 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
             hasRequestedShippingOptions,
         } = this.state;
 
-        const PAYMENT_METHOD_VALID = ['amazon', 'amazonpay'];
-        const shouldShowBillingSameAsShipping = !PAYMENT_METHOD_VALID.some(method => method === methodId);
+        //const PAYMENT_METHOD_VALID = ['amazon', 'amazonpay'];
+        //const shouldShowBillingSameAsShipping = !PAYMENT_METHOD_VALID.some(method => method === methodId);
+
+        //setDefaultShippingOption(this.props);
 
         return (
             <Form autoComplete="on">
                 <Fieldset>
                     <ShippingAddress
-                        addresses={ addresses }
-                        consignments={ consignments }
-                        countries={ countries }
-                        countriesWithAutocomplete={ countriesWithAutocomplete }
-                        deinitialize={ deinitialize }
-                        formFields={ this.getFields(addressForm && addressForm.countryCode) }
-                        googleMapsApiKey={ googleMapsApiKey }
-                        hasRequestedShippingOptions={ hasRequestedShippingOptions }
-                        initialize={ initialize }
-                        isLoading={ isResettingAddress }
-                        isShippingStepPending={ isShippingStepPending }
-                        methodId={ methodId }
-                        onAddressSelect={ this.handleAddressSelect }
-                        onFieldChange={ this.handleFieldChange }
-                        onUnhandledError={ onUnhandledError }
-                        onUseNewAddress={ this.onUseNewAddress }
-                        shippingAddress={ shippingAddress }
-                        shouldShowSaveAddress={ shouldShowSaveAddress }
+                        addresses={addresses}
+                        consignments={consignments}
+                        countries={countries}
+                        countriesWithAutocomplete={countriesWithAutocomplete}
+                        deinitialize={deinitialize}
+                        formFields={this.getFields(addressForm && addressForm.countryCode)}
+                        googleMapsApiKey={googleMapsApiKey}
+                        hasRequestedShippingOptions={hasRequestedShippingOptions}
+                        initialize={initialize}
+                        isLoading={isResettingAddress}
+                        isShippingStepPending={isShippingStepPending}
+                        methodId={methodId}
+                        onAddressSelect={this.handleAddressSelect}
+                        onFieldChange={this.handleFieldChange}
+                        onUnhandledError={onUnhandledError}
+                        onUseNewAddress={this.onUseNewAddress}
+                        shippingAddress={shippingAddress}
+                        shouldShowSaveAddress={shouldShowSaveAddress}
                     />
                     {
-                        shouldShowBillingSameAsShipping && <div className="form-body">
-                            <BillingSameAsShippingField />
-                        </div>
+                    //    shouldShowBillingSameAsShipping && <div className="form-body">
+                    //        <BillingSameAsShippingField />
+                    //    </div>
                     }
                 </Fieldset>
 
                 <ShippingFormFooter
-                    cartHasChanged={ cartHasChanged }
-                    isLoading={ isLoading || isUpdatingShippingData }
-                    isMultiShippingMode={ false }
-                    shouldDisableSubmit={ this.shouldDisableSubmit() }
-                    shouldShowOrderComments={ shouldShowOrderComments }
-                    shouldShowShippingOptions={ isValid }
+                    cartHasChanged={cartHasChanged}
+                    isLoading={isLoading || isUpdatingShippingData}
+                    isMultiShippingMode={false}
+                    shouldDisableSubmit={this.shouldDisableSubmit()}
+                    shouldShowOrderComments={shouldShowOrderComments}
+                    shouldShowShippingOptions={isValid}
                 />
             </Form>
         );
@@ -222,7 +250,7 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
     }
 
     private handleAddressSelect: (
-        address: Address
+        address: Address | any
     ) => void = async address => {
         const {
             updateAddress,
@@ -230,6 +258,8 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
             values,
             setValues,
         } = this.props;
+
+        storage.CCSelectShippingAddressId.setValue((address.id) ? address.id : "");
 
         this.setState({ isResettingAddress: true });
 
@@ -312,21 +342,21 @@ export default withLanguage(withFormik<SingleShippingFormProps & WithLanguagePro
         getFields,
         methodId,
     }: SingleShippingFormProps & WithLanguageProps) => methodId ?
-        object({
-            shippingAddress: lazy<Partial<AddressFormValues>>(formValues =>
-                getCustomFormFieldsValidationSchema({
-                    translate: getTranslateAddressError(language),
-                    formFields: getFields(formValues && formValues.countryCode),
-                })
-            ),
-        }) :
-        object({
-            shippingAddress: lazy<Partial<AddressFormValues>>(formValues =>
-                getAddressFormFieldsValidationSchema({
-                    language,
-                    formFields: getFields(formValues && formValues.countryCode),
-                })
-            ),
-        }),
+            object({
+                shippingAddress: lazy<Partial<AddressFormValues>>(formValues =>
+                    getCustomFormFieldsValidationSchema({
+                        translate: getTranslateAddressError(language),
+                        formFields: getFields(formValues && formValues.countryCode),
+                    })
+                ),
+            }) :
+            object({
+                shippingAddress: lazy<Partial<AddressFormValues>>(formValues =>
+                    getAddressFormFieldsValidationSchema({
+                        language,
+                        formFields: getFields(formValues && formValues.countryCode),
+                    })
+                ),
+            }),
     enableReinitialize: false,
 })(SingleShippingForm));

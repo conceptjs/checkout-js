@@ -20,3 +20,4 @@ export { default as Legend, LegendProps } from './Legend';
 export { default as ChecklistItemInput, ChecklistItemInputProps } from './ChecklistItemInput';
 export { default as DynamicFormField } from './DynamicFormField';
 export { default as DynamicFormFieldType } from './DynamicFormFieldType';
+export { default as DynamicInput } from './DynamicInput';

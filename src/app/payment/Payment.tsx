@@ -1,4 +1,4 @@
-import { CartChangedError, CheckoutSelectors, CheckoutSettings, OrderRequestBody, PaymentMethod } from '@bigcommerce/checkout-sdk';
+import { CartChangedError, CheckoutSelectors, CheckoutSettings, OrderRequestBody, PaymentMethod, CheckoutRequestBody } from '@bigcommerce/checkout-sdk';
 import { memoizeOne } from '@bigcommerce/memoize';
 import { compact, find, isEmpty, noop } from 'lodash';
 import React, { Component, ReactNode } from 'react';
@@ -17,6 +17,10 @@ import { getUniquePaymentMethodId, PaymentMethodId, PaymentMethodProviderType } 
 import PaymentContext from './PaymentContext';
 import PaymentForm, { PaymentFormValues } from './PaymentForm';
 
+import ccService from '../coldChainCheckout/request';
+import coldChainCheckout from '../coldChainCheckout';
+import { storage } from '../coldChainCheckout/utils';
+
 export interface PaymentProps {
     isEmbedded?: boolean;
     isUsingMultiShipping?: boolean;
@@ -28,6 +32,7 @@ export interface PaymentProps {
     onSubmit?(): void;
     onSubmitError?(error: Error): void;
     onUnhandledError?(error: Error): void;
+    onCreatingEpicorOrder(flag: boolean): void;
 }
 
 interface WithCheckoutPaymentProps {
@@ -53,6 +58,7 @@ interface WithCheckoutPaymentProps {
     loadCheckout(): Promise<CheckoutSelectors>;
     loadPaymentMethods(): Promise<CheckoutSelectors>;
     submitOrder(values: OrderRequestBody): Promise<CheckoutSelectors>;
+    updateCheckout(payload: CheckoutRequestBody): Promise<CheckoutSelectors>;
 }
 
 interface PaymentState {
@@ -153,31 +159,31 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
         );
 
         return (
-            <PaymentContext.Provider value={ this.getContextValue() }>
+            <PaymentContext.Provider value={this.getContextValue()}>
                 <LoadingOverlay
-                    isLoading={ !isReady }
+                    isLoading={!isReady}
                     unmountContentWhenLoading
                 >
-                    { !isEmpty(methods) && defaultMethod && <PaymentForm
-                        { ...rest }
-                        defaultGatewayId={ defaultMethod.gateway }
-                        defaultMethodId={ defaultMethod.id }
-                        didExceedSpamLimit={ didExceedSpamLimit }
-                        isInitializingPayment={ isInitializingPayment }
-                        isUsingMultiShipping={ isUsingMultiShipping }
-                        methods={ methods }
-                        onMethodSelect={ this.setSelectedMethod }
-                        onStoreCreditChange={ this.handleStoreCreditChange }
-                        onSubmit={ this.handleSubmit }
-                        selectedMethod={ selectedMethod }
-                        shouldDisableSubmit={ uniqueSelectedMethodId && shouldDisableSubmit[uniqueSelectedMethodId] || undefined }
-                        shouldHidePaymentSubmitButton={ uniqueSelectedMethodId && shouldHidePaymentSubmitButton[uniqueSelectedMethodId] || undefined }
-                        validationSchema={ uniqueSelectedMethodId && validationSchemas[uniqueSelectedMethodId] || undefined }
-                    /> }
+                    {!isEmpty(methods) && defaultMethod && <PaymentForm
+                        {...rest}
+                        defaultGatewayId={defaultMethod.gateway}
+                        defaultMethodId={defaultMethod.id}
+                        didExceedSpamLimit={didExceedSpamLimit}
+                        isInitializingPayment={isInitializingPayment}
+                        isUsingMultiShipping={isUsingMultiShipping}
+                        methods={methods}
+                        onMethodSelect={this.setSelectedMethod}
+                        onStoreCreditChange={this.handleStoreCreditChange}
+                        onSubmit={this.handleSubmit}
+                        selectedMethod={selectedMethod}
+                        shouldDisableSubmit={uniqueSelectedMethodId && shouldDisableSubmit[uniqueSelectedMethodId] || undefined}
+                        shouldHidePaymentSubmitButton={uniqueSelectedMethodId && shouldHidePaymentSubmitButton[uniqueSelectedMethodId] || undefined}
+                        validationSchema={uniqueSelectedMethodId && validationSchemas[uniqueSelectedMethodId] || undefined}
+                    />}
                 </LoadingOverlay>
 
-                { this.renderOrderErrorModal() }
-                { this.renderEmbeddedSupportErrorModal() }
+                { this.renderOrderErrorModal()}
+                { this.renderEmbeddedSupportErrorModal()}
             </PaymentContext.Provider>
         );
     }
@@ -204,10 +210,10 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
 
         return (
             <ErrorModal
-                error={ error }
-                message={ mapSubmitOrderErrorMessage(error, language.translate.bind(language), shouldLocaliseErrorMessages) }
-                onClose={ this.handleCloseModal }
-                title={ mapSubmitOrderErrorTitle(error, language.translate.bind(language)) }
+                error={error}
+                message={mapSubmitOrderErrorMessage(error, language.translate.bind(language), shouldLocaliseErrorMessages)}
+                onClose={this.handleCloseModal}
+                title={mapSubmitOrderErrorTitle(error, language.translate.bind(language))}
             />
         );
     }
@@ -223,8 +229,8 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
         } catch (error) {
             return (
                 <ErrorModal
-                    error={ error }
-                    onClose={ this.handleCloseModal }
+                    error={error}
+                    onClose={this.handleCloseModal}
                 />
             );
         }
@@ -374,7 +380,10 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             onCartChangedError = noop,
             onSubmit = noop,
             onSubmitError = noop,
+            onUnhandledError = noop,
             submitOrder,
+            updateCheckout,
+            onCreatingEpicorOrder
         } = this.props;
 
         const {
@@ -382,16 +391,31 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             submitFunctions,
         } = this.state;
 
-        const customSubmit = selectedMethod && submitFunctions[
-            getUniquePaymentMethodId(selectedMethod.id, selectedMethod.gateway)
-        ];
-
-        if (customSubmit) {
-            return customSubmit(values);
-        }
-
+        var epiCorOrderResp = null;
         try {
+            var cart = JSON.parse(storage.BCCart.getValue());
+            onCreatingEpicorOrder(true);
+            epiCorOrderResp = await ccService.api.createCCOrder(cart);
+        }catch(err){
+            onUnhandledError(err);
+            return;
+        }finally{
+            onCreatingEpicorOrder(false);
+        }
+        
+        try{
+            coldChainCheckout.customer.logout();
+            await updateCheckout({ customerMessage: "ERP Order #"+ ((epiCorOrderResp)?epiCorOrderResp.id:"")});
+
+            const customSubmit = selectedMethod && submitFunctions[
+                getUniquePaymentMethodId(selectedMethod.id, selectedMethod.gateway)
+            ];
+
+            if (customSubmit) {
+                return customSubmit(values);
+            }
             await submitOrder(mapToOrderRequestBody(values, isPaymentDataRequired()));
+
             onSubmit();
         } catch (error) {
             if (error.type === 'payment_method_invalid') {
@@ -554,6 +578,7 @@ export function mapToPaymentProps({
         shouldLocaliseErrorMessages: features['PAYMENTS-6799.localise_checkout_payment_error_messages'],
         submitOrder: checkoutService.submitOrder,
         submitOrderError: getSubmitOrderError(),
+        updateCheckout: checkoutService.updateCheckout,
         termsConditionsText: isTermsConditionsRequired && termsConditionsType === TermsConditionsType.TextArea ?
             termsCondtitionsText :
             undefined,

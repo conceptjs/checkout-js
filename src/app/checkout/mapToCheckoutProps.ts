@@ -47,5 +47,6 @@ export default function mapToCheckoutProps(
         promotions,
         subscribeToConsignments: subscribeToConsignmentsSelector({ checkoutService, checkoutState }),
         steps: data.getCheckout() ? getCheckoutStepStatuses(checkoutState) : EMPTY_ARRAY,
+        checkoutService
     };
 }

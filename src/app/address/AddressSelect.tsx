@@ -1,5 +1,5 @@
 import { Address, CustomerAddress } from '@bigcommerce/checkout-sdk';
-import React, { memo, FunctionComponent, PureComponent, ReactNode } from 'react';
+import React, { memo, FunctionComponent, PureComponent, ReactNode, useState } from 'react';
 
 import { preventDefault } from '../common/dom';
 import { TranslatedString } from '../locale';
@@ -8,6 +8,8 @@ import { DropdownTrigger } from '../ui/dropdown';
 import isEqualAddress from './isEqualAddress';
 import './AddressSelect.scss';
 import StaticAddress from './StaticAddress';
+
+import { AddressFilterInput } from '../coldChainCheckout';
 
 export interface AddressSelectProps {
     addresses: CustomerAddress[];
@@ -29,16 +31,16 @@ class AddressSelect extends PureComponent<AddressSelectProps> {
                     <DropdownTrigger
                         dropdown={
                             <AddressSelectMenu
-                                addresses={ addresses }
-                                onSelectAddress={ this.handleSelectAddress }
-                                onUseNewAddress={ this.handleUseNewAddress }
-                                selectedAddress={ selectedAddress }
+                                addresses={addresses}
+                                onSelectAddress={this.handleSelectAddress}
+                                onUseNewAddress={this.handleUseNewAddress}
+                                selectedAddress={selectedAddress}
                             />
                         }
                     >
                         <AddressSelectButton
-                            addresses={ addresses }
-                            selectedAddress={ selectedAddress }
+                            addresses={addresses}
+                            selectedAddress={selectedAddress}
                         />
                     </DropdownTrigger>
                 </div>
@@ -67,37 +69,47 @@ class AddressSelect extends PureComponent<AddressSelectProps> {
     };
 }
 
+const addressesFilterHandler = (q: string, addresses: CustomerAddress[]) => {
+    return addresses.filter(address => JSON
+        .stringify(address)
+        .trim()
+        .toLocaleLowerCase()
+        .includes(
+            q
+                .trim()
+                .toLocaleLowerCase()
+        )
+    )
+}
+
 const AddressSelectMenu: FunctionComponent<AddressSelectProps> = ({
     addresses,
-    onSelectAddress,
-    onUseNewAddress,
-    selectedAddress,
-}) => (
-    <ul
+    onSelectAddress
+}) => {
+    const [disPlayAddress, setDisPlayAddress] = useState(addresses);
+
+    return (<ul
         className="dropdown-menu instrumentSelect-dropdownMenu"
         id="addressDropdown"
     >
-        <li className="dropdown-menu-item dropdown-menu-item--select">
-            <a
-                data-test="add-new-address"
-                href="#"
-                onClick={ preventDefault(() => onUseNewAddress(selectedAddress)) }
-            >
-                <TranslatedString id="address.enter_address_action" />
-            </a>
-        </li>
-        { addresses.map(address => (
+        <AddressFilterInput
+            onChange={(q: string) => {
+                setDisPlayAddress(addressesFilterHandler(q, addresses))
+            }}
+        />
+        { disPlayAddress.map(address => (
             <li
                 className="dropdown-menu-item dropdown-menu-item--select"
-                key={ address.id }
+                key={address.id}
             >
-                <a href="#" onClick={ preventDefault(() => onSelectAddress(address)) }>
-                    <StaticAddress address={ address } />
+                <a href="#" onClick={preventDefault(() => onSelectAddress(address))}>
+                    <StaticAddress address={address} />
                 </a>
             </li>
-        )) }
+        ))}
     </ul>
-);
+    );
+};
 
 type AddressSelectButtonProps = Pick<AddressSelectProps, 'selectedAddress' | 'addresses'>;
 
@@ -108,11 +120,11 @@ const AddressSelectButton: FunctionComponent<AddressSelectButtonProps> = ({
         className="button dropdown-button dropdown-toggle--select"
         href="#"
         id="addressToggle"
-        onClick={ preventDefault() }
+        onClick={preventDefault()}
     >
         { selectedAddress ?
-            <StaticAddress address={ selectedAddress } /> :
-            <TranslatedString id="address.enter_address_action" /> }
+            <StaticAddress address={selectedAddress} /> :
+            <TranslatedString id="address.enter_address_action" />}
     </a>
 );
 

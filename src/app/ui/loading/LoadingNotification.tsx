@@ -4,10 +4,12 @@ import { TranslatedString } from '../../locale';
 
 export interface LoadingNotificationProps {
     isLoading: boolean;
+    creatingEpicorOrder: boolean;
 }
 
 const LoadingNotification: FunctionComponent<LoadingNotificationProps> = ({
     isLoading,
+    creatingEpicorOrder
 }) => {
     if (!isLoading) {
         return null;
@@ -19,7 +21,7 @@ const LoadingNotification: FunctionComponent<LoadingNotificationProps> = ({
                 <div className="spinner" />
 
                 <span className="label">
-                    <TranslatedString id="common.loading_text" />
+                    <TranslatedString id={(creatingEpicorOrder)?"common.create_epicor_order_text":"common.loading_text"} />
                 </span>
             </div>
         </div>

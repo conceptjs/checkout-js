@@ -13,6 +13,8 @@ import { LoadingOverlay } from '../ui/loading';
 import getBillingMethodId from './getBillingMethodId';
 import BillingForm, { BillingFormValues } from './BillingForm';
 
+import { storage } from '../coldChainCheckout/utils';
+
 export interface BillingProps {
     navigateNextStep(): void;
     onReady?(): void;
@@ -36,7 +38,21 @@ export interface WithCheckoutBillingProps {
     updateCheckout(payload: CheckoutRequestBody): Promise<CheckoutSelectors>;
 }
 
-class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
+interface BillingState {
+    billingAddress?: Address;
+}
+
+class Billing extends Component<BillingProps & WithCheckoutBillingProps, BillingState> {
+    constructor(props: BillingProps & WithCheckoutBillingProps) {
+        super(props);
+
+        var address = JSON.parse(storage.CCAddresses.getValue());
+
+        this.state = {
+            billingAddress: address.billAddresses
+        };
+    }
+
     async componentDidMount(): Promise<void> {
         const {
             initialize,
@@ -45,12 +61,44 @@ class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
         } = this.props;
 
         try {
+            //var self = this;
             await initialize();
+
+
+            var address = JSON.parse(storage.CCAddresses.getValue());
+
+            if (address && this.props.customer) {
+                this.props.customer.addresses = [address.billAddresses];
+                //if (!this.props.billingAddress || this.props.billingAddress.customFields.length == 0) {
+                //    setTimeout(function () {
+                //        self.setState({
+                //            billingAddress: address.addresses[address.defaultBillingId]
+                //        })
+                //    }, 1000);
+                //}
+            }
+
+            try {
+                await this.props.updateAddress(address.billAddresses);
+            } catch (error) {
+                onUnhandledError(error);
+            }
+
             onReady();
         } catch (e) {
             onUnhandledError(e);
         }
     }
+
+    /*
+    async componentWillReceiveProps(nextProps: any): Promise<void> {
+        if (!isEqualAddress(this.props.billingAddress, nextProps.shippingAddress)) {
+            this.setState({
+                billingAddress: nextProps.billingAddress
+            })
+        }
+    }
+    */
 
     render(): ReactNode {
         const {
@@ -58,6 +106,10 @@ class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
             isInitializing,
             ...props
         } = this.props;
+
+        const {
+            billingAddress
+        } = this.state;
 
         return (
             <div className="checkout-form">
@@ -68,13 +120,14 @@ class Billing extends Component<BillingProps & WithCheckoutBillingProps> {
                 </div>
 
                 <LoadingOverlay
-                    isLoading={ isInitializing }
+                    isLoading={isInitializing}
                     unmountContentWhenLoading
                 >
                     <BillingForm
-                        { ...props }
-                        onSubmit={ this.handleSubmit }
-                        updateAddress={ updateAddress }
+                        {...props}
+                        onSubmit={this.handleSubmit}
+                        updateAddress={updateAddress}
+                        billingAddress={billingAddress}
                     />
                 </LoadingOverlay>
             </div>

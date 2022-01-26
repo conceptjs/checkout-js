@@ -1,7 +1,8 @@
 import React, { PureComponent, ReactNode } from 'react';
 
 import { TranslatedString } from '../locale';
-import { OrderComments } from '../orderComments';
+//import { OrderComments } from '../orderComments';
+import { ColdChainCOExtraFields } from '../coldChainCheckout';
 import { Alert, AlertType } from '../ui/alert';
 import { Button, ButtonVariant } from '../ui/button';
 import { Fieldset, Legend } from '../ui/form';
@@ -22,7 +23,7 @@ class ShippingFormFooter extends PureComponent<ShippingFormFooterProps> {
         const {
             cartHasChanged,
             isMultiShippingMode,
-            shouldShowOrderComments,
+            //shouldShowOrderComments,
             shouldShowShippingOptions = true,
             shouldDisableSubmit,
             isLoading,
@@ -53,8 +54,7 @@ class ShippingFormFooter extends PureComponent<ShippingFormFooterProps> {
                 />
             </Fieldset>
 
-            { shouldShowOrderComments &&
-                <OrderComments /> }
+            <ColdChainCOExtraFields />
 
             <div className="form-actions">
                 <Button

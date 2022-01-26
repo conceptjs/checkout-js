@@ -1,4 +1,4 @@
-import { Address, CheckoutPayment, FormField } from '@bigcommerce/checkout-sdk';
+import { Address, CheckoutPayment, FormField, CheckoutSelectors } from '@bigcommerce/checkout-sdk';
 import React, { memo, FunctionComponent } from 'react';
 
 import { AddressType, StaticAddress } from '../address';
@@ -13,6 +13,7 @@ export interface StaticBillingAddressProps {
 interface WithCheckoutStaticBillingAddressProps {
     fields: FormField[];
     payments?: CheckoutPayment[];
+    updateAddress(address: Partial<Address>): Promise<CheckoutSelectors>;
 }
 
 const StaticBillingAddress: FunctionComponent<
@@ -21,29 +22,36 @@ const StaticBillingAddress: FunctionComponent<
 > = ({
     address,
     payments = EMPTY_ARRAY,
+    //updateAddress
 }) => {
-    if (payments.find(payment => payment.providerId === 'amazon')) {
-        return (
-            <p><TranslatedString id="billing.billing_address_amazon" /></p>
-        );
-    }
+    /*
+        useEffect(() => {
+            updateAddress(address);
+        },[address])
+        */
 
-    if (payments.find(payment => payment.providerId === 'amazonpay')) {
-        return (
-            <p><TranslatedString id="billing.billing_address_amazonpay" /></p>
-        );
-    }
+        if (payments.find(payment => payment.providerId === 'amazon')) {
+            return (
+                <p><TranslatedString id="billing.billing_address_amazon" /></p>
+            );
+        }
 
-    return (
-        <StaticAddress
-            address={ address }
-            type={ AddressType.Billing }
-        />
-    );
-};
+        if (payments.find(payment => payment.providerId === 'amazonpay')) {
+            return (
+                <p><TranslatedString id="billing.billing_address_amazonpay" /></p>
+            );
+        }
+
+        return (
+            <StaticAddress
+                address={address}
+                type={AddressType.Billing}
+            />
+        );
+    };
 
 export function mapToStaticBillingAddressProps(
-    { checkoutState }: CheckoutContextProps,
+    { checkoutState, checkoutService }: CheckoutContextProps,
     { address }: StaticBillingAddressProps
 ): WithCheckoutStaticBillingAddressProps | null {
     const {
@@ -58,6 +66,7 @@ export function mapToStaticBillingAddressProps(
     return {
         fields: getBillingAddressFields(address.countryCode),
         payments: checkout && checkout.payments,
+        updateAddress: checkoutService.updateBillingAddress,
     };
 }
 
