@@ -8,7 +8,7 @@ const init = async (data: CheckoutStoreSelector, service: CheckoutService) => {
   service
 
   try {
-    const bcToken = await ccService.bcApi.getBcToken();
+    const bcToken = await ccService.bcApi.getBcToken(undefined);
     const cart = data.getCart();
     storage.BCToken.setValue(bcToken);
     storage.BCCustomer.setValue(customer);

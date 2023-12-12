@@ -36,12 +36,13 @@ const StaticAddress: FunctionComponent<StaticAddressEditableProps & WithCheckout
     const isValid = true;
 
     return !isValid ? null : <div className="vcard checkout-address--static">
-        {
+        {/*
             (address.firstName || address.lastName) &&
             <p className="fn address-entry">
                 <span className="first-name">{ `${address.firstName} ` }</span>
                 <span className="family-name">{ address.lastName }</span>
             </p>
+        */
         }
 
         {
@@ -65,19 +66,19 @@ const StaticAddress: FunctionComponent<StaticAddressEditableProps & WithCheckout
 
             <p className="address-entry">
                 {
-                    address.city &&
+                    address.city && address.city != "NA" &&
                     <span className="locality">{ `${address.city}, ` }</span>
                 }
                 {
-                    address.localizedProvince &&
+                    address.localizedProvince && address.localizedProvince != "NA" &&
                     <span className="region">{ `${address.localizedProvince}, ` }</span>
                 }
                 {
-                    address.postalCode &&
+                    address.postalCode && address.postalCode != "NA" &&
                     <span className="postal-code">{ `${address.postalCode} / ` }</span>
                 }
                 {
-                    address.localizedCountry &&
+                    address.localizedCountry && address.localizedCountry != "NA" &&
                     <span className="country-name">{ `${address.localizedCountry} ` }</span>
                 }
             </p>

@@ -69,6 +69,8 @@ interface PaymentState {
     shouldHidePaymentSubmitButton: { [key: string]: boolean };
     submitFunctions: { [key: string]: ((values: PaymentFormValues) => void) | null };
     validationSchemas: { [key: string]: ObjectSchema<Partial<PaymentFormValues>> | null };
+    PONumber: string;
+    needByMissing: boolean;
 }
 
 class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLanguageProps, PaymentState> {
@@ -79,6 +81,8 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
         shouldHidePaymentSubmitButton: {},
         validationSchemas: {},
         submitFunctions: {},
+        PONumber: storage.CCPoNumber.getValue(),
+        needByMissing: false
     };
 
     private getContextValue = memoizeOne(() => {
@@ -151,6 +155,8 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             shouldDisableSubmit,
             validationSchemas,
             shouldHidePaymentSubmitButton,
+            PONumber,
+            needByMissing
         } = this.state;
 
         const uniqueSelectedMethodId = (
@@ -175,8 +181,10 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
                         onMethodSelect={this.setSelectedMethod}
                         onStoreCreditChange={this.handleStoreCreditChange}
                         onSubmit={this.handleSubmit}
+                        setPONumber={this.setPONumber}
+                        needByMissing={needByMissing}
                         selectedMethod={selectedMethod}
-                        shouldDisableSubmit={uniqueSelectedMethodId && shouldDisableSubmit[uniqueSelectedMethodId] || undefined}
+                        shouldDisableSubmit={!PONumber || (uniqueSelectedMethodId && shouldDisableSubmit[uniqueSelectedMethodId]) || undefined}
                         shouldHidePaymentSubmitButton={uniqueSelectedMethodId && shouldHidePaymentSubmitButton[uniqueSelectedMethodId] || undefined}
                         validationSchema={uniqueSelectedMethodId && validationSchemas[uniqueSelectedMethodId] || undefined}
                     />}
@@ -391,11 +399,19 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             submitFunctions,
         } = this.state;
 
+        if (!storage.CCNeedBy.getValue()){
+            this.setState({needByMissing: true});
+            return;
+        }else{
+            this.setState({needByMissing: false});
+        }
+
         var epiCorOrderResp = null;
         try {
             var cart = JSON.parse(storage.BCCart.getValue());
             onCreatingEpicorOrder(true);
             epiCorOrderResp = await ccService.api.createCCOrder(cart);
+            var address = JSON.parse(storage.CCAddresses.getValue());
         }catch(err){
             onUnhandledError(err);
             return;
@@ -404,8 +420,7 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
         }
         
         try{
-            coldChainCheckout.customer.logout();
-            await updateCheckout({ customerMessage: "ERP Order #"+ ((epiCorOrderResp)?epiCorOrderResp.id:"")});
+            await updateCheckout({ customerMessage: "CCT Sales Order #"+((address)?address.company:"")+"-"+ ((epiCorOrderResp)?epiCorOrderResp.id:"")});
 
             const customSubmit = selectedMethod && submitFunctions[
                 getUniquePaymentMethodId(selectedMethod.id, selectedMethod.gateway)
@@ -414,7 +429,13 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
             if (customSubmit) {
                 return customSubmit(values);
             }
-            await submitOrder(mapToOrderRequestBody(values, isPaymentDataRequired()));
+            const { data } = await submitOrder(mapToOrderRequestBody(values, isPaymentDataRequired()));
+            const order = data.getOrder();
+            if (order?.orderId) {
+                console.log("orderId:"+order.orderId);
+                await ccService.api.addPONumber(cart, order.orderId);
+            }
+            coldChainCheckout.customer.logout();
 
             onSubmit();
         } catch (error) {
@@ -438,6 +459,10 @@ class Payment extends Component<PaymentProps & WithCheckoutPaymentProps & WithLa
         }
 
         this.setState({ selectedMethod: method });
+    };
+
+    private setPONumber: (poNumber: string) => void = poNumber => {
+        this.setState({ PONumber: poNumber });
     };
 
     private setSubmit: (

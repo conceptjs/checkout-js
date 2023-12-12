@@ -184,6 +184,7 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
                     shouldDisableSubmit={this.shouldDisableSubmit()}
                     shouldShowOrderComments={shouldShowOrderComments}
                     shouldShowShippingOptions={isValid}
+                    onContinueButton={this.onContinueButton}
                 />
             </Form>
         );
@@ -260,6 +261,7 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
         } = this.props;
 
         storage.CCSelectShippingAddressId.setValue((address.id) ? address.id : "");
+        storage.CCSelectedAddress.setValue(JSON.stringify(address));
 
         this.setState({ isResettingAddress: true });
 
@@ -279,6 +281,38 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
             this.setState({ isResettingAddress: false });
         }
     };
+
+
+    private onContinueButton: React.MouseEventHandler<HTMLElement> = async event => {
+        const {
+            onSubmit,
+            onUnhandledError = noop
+        } = this.props;
+        event;
+        var address;
+        var shippingMethod = storage.CCShippingMethod.getValue();
+        console.log("in continue, storage.CCShippingMethod value:"+storage.CCShippingMethod.getValue());
+        console.log("in continue, storage.CCSelectedAddress value:"+storage.CCSelectedAddress.getValue());
+        if (shippingMethod == "OTS"){
+            address = JSON.parse(storage.CCOTSAddress.getValue());
+            await this.handleAddressSelect(address);
+        }else{
+            address = JSON.parse(storage.CCSelectedAddress.getValue());
+        }
+        var addrValue = {
+            billingSameAsShipping: true,
+            shippingAddress: mapAddressToFormValues(
+                this.getFields(address.countryCode),
+                address
+            ),
+            orderComment: ""
+        };
+        try{
+            onSubmit(addrValue);
+        }catch(err){
+            onUnhandledError(err);
+        }
+    }
 
     private onUseNewAddress: () => void = async () => {
         const {
@@ -316,7 +350,7 @@ class SingleShippingForm extends PureComponent<SingleShippingFormProps & WithLan
 }
 
 export default withLanguage(withFormik<SingleShippingFormProps & WithLanguageProps, SingleShippingFormValues>({
-    handleSubmit: (values, { props: { onSubmit } }) => {
+    handleSubmit: (values, { props: { onSubmit} }) => {
         onSubmit(values);
     },
     mapPropsToValues: ({ getFields, shippingAddress, isBillingSameAsShipping, customerMessage }) => ({

@@ -15,6 +15,7 @@ export interface OrderSummaryProps {
     storeCurrency: StoreCurrency;
     shopperCurrency: ShopperCurrency;
     additionalLineItems?: ReactNode;
+    isEUCompany?: boolean;
 }
 
 const OrderSummary: FunctionComponent<OrderSummaryProps & OrderSummarySubtotalsProps> = ({
@@ -24,11 +25,14 @@ const OrderSummary: FunctionComponent<OrderSummaryProps & OrderSummarySubtotalsP
     additionalLineItems,
     lineItems,
     total,
+    isEUCompany,
     ...orderSummarySubtotalsProps
 }) => {
     const nonBundledLineItems = useMemo(() => (
         removeBundledItems(lineItems)
     ), [lineItems]);
+
+    //console.log("OrderSummary:isEUCompany:"+isEUCompany);
 
     return <article className="cart optimizedCheckout-orderSummary" data-test="cart">
         <OrderSummaryHeader>
@@ -51,6 +55,7 @@ const OrderSummary: FunctionComponent<OrderSummaryProps & OrderSummarySubtotalsP
                 orderAmount={ total }
                 shopperCurrencyCode={ shopperCurrency.code }
                 storeCurrencyCode={ storeCurrency.code }
+                isEUCompany={isEUCompany}
             />
         </OrderSummarySection>
     </article>;

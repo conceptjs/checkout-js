@@ -1,7 +1,7 @@
 import { ShippingOption } from '@bigcommerce/checkout-sdk';
 import React from 'react';
 
-import { ShopperCurrency } from '../../currency';
+//import { ShopperCurrency } from '../../currency';
 
 import ShippingOptionAdditionalDescription from './ShippingOptionAdditionalDescription';
 import './StaticShippingOption.scss';
@@ -27,7 +27,8 @@ method,
                         />
                     </span> }
                 <span className="shippingOption-desc">
-                    { method.description }
+                    <span style={{marginTop: "20px", display: "block"}}><b>Any applicable freight charges may be added</b></span>
+                    {/* method.description */}
                     { method.transitTime &&
                         <span className="shippingOption-transitTime">
                             { method.transitTime }
@@ -35,9 +36,9 @@ method,
                     { method.additionalDescription && displayAdditionalInformation &&
                         <ShippingOptionAdditionalDescription description={ method.additionalDescription } /> }
                 </span>
-                <span className="shippingOption-price">
+                {/*<span className="shippingOption-price">
                     <ShopperCurrency amount={ method.cost } />
-                </span>
+                    </span>*/}
             </div>
         </>
     );

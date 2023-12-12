@@ -18,6 +18,7 @@ import { StoreCreditField, StoreCreditOverlay } from './storeCredit';
 import PaymentRedeemables from './PaymentRedeemables';
 import PaymentSubmitButton from './PaymentSubmitButton';
 import SpamProtectionField from './SpamProtectionField';
+import { TranslatedString} from '../locale';
 
 import { PoNumber } from '../coldChainCheckout';
 import { TermsCode } from '../coldChainCheckout';
@@ -47,6 +48,8 @@ export interface PaymentFormProps {
     onStoreCreditChange?(useStoreCredit?: boolean): void;
     onSubmit?(values: PaymentFormValues): void;
     onUnhandledError?(error: Error): void;
+    setPONumber(poNumber:string):void;
+    needByMissing: boolean;
 }
 
 export type PaymentFormValues = (
@@ -98,6 +101,8 @@ const PaymentForm: FunctionComponent<PaymentFormProps & FormikProps<PaymentFormV
     termsConditionsUrl,
     usableStoreCredit = 0,
     values,
+    setPONumber,
+    needByMissing
 }) => {
     const selectedMethodId = useMemo(() => {
         if (!selectedMethod) {
@@ -153,12 +158,14 @@ const PaymentForm: FunctionComponent<PaymentFormProps & FormikProps<PaymentFormV
 
             <TermsCode />
 
-            <PoNumber />
+            <PoNumber setPONumber={setPONumber}/>
 
             { isTermsConditionsRequired && <TermsConditions
                 termsConditionsText={ termsConditionsText }
                 termsConditionsUrl={ termsConditionsUrl }
             /> }
+
+            { needByMissing && <p className="cc_needBy_missing"><TranslatedString id="shipping.needBy_missing" /></p>}
 
             <div className="form-actions">
                 { shouldHidePaymentSubmitButton ?

@@ -8,6 +8,7 @@ export interface OrderSummaryTotalProps {
     orderAmount: number;
     shopperCurrencyCode: string;
     storeCurrencyCode: string;
+    isEUCompany?: boolean;
 }
 
 const OrderSummaryTotal: FunctionComponent<OrderSummaryTotalProps & WithCurrencyProps> = ({
@@ -15,6 +16,7 @@ const OrderSummaryTotal: FunctionComponent<OrderSummaryTotalProps & WithCurrency
     storeCurrencyCode,
     orderAmount,
     currency,
+    isEUCompany
 }) => {
 
     const hasDifferentCurrency = shopperCurrencyCode !== storeCurrencyCode;
@@ -25,6 +27,8 @@ const OrderSummaryTotal: FunctionComponent<OrderSummaryTotalProps & WithCurrency
         { ` (${shopperCurrencyCode})` }
     </Fragment>;
 
+    //console.log("OrderSummaryTotal:isEUCompany:"+isEUCompany);
+
     return (
         <Fragment>
             <OrderSummaryPrice
@@ -33,6 +37,7 @@ const OrderSummaryTotal: FunctionComponent<OrderSummaryTotalProps & WithCurrency
                 label={ label }
                 superscript={ hasDifferentCurrency ? '*' : undefined }
                 testId="cart-total"
+                isEUCompany={isEUCompany}
             />
             { hasDifferentCurrency && currency && <p
                 className="cart-priceItem--totalNote"

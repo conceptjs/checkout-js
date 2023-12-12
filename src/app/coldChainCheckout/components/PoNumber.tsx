@@ -6,9 +6,13 @@ import storage from '../utils/storage'
 import './styles.scss'
 import { TranslatedString } from '../../locale';
 
-const PO_NUMBER = 'cc-po-number'
+const PO_NUMBER = 'cc-po-number';
 
-const PoNumber:FC = () => {
+interface PoNumberProps {
+  setPONumber(poNumber:string):void;
+}
+
+const PoNumber:FC<PoNumberProps> = (props) => {
   const { selectedItemId } = useContext(AccordionContext);
   const [poNumber, setPoNumber] = useState(storage.CCPoNumber.getValue() || '')
   const isSelected = selectedItemId === 'cheque'
@@ -16,6 +20,9 @@ const PoNumber:FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setPoNumber(val)
+    if (props.setPONumber){
+      props.setPONumber(val);
+    }
     val ? storage.CCPoNumber.setValue(val) : storage.CCPoNumber.removeValue()
   }
 
@@ -26,7 +33,8 @@ const PoNumber:FC = () => {
           <span><TranslatedString id="payment.poNumber_label" /> </span>
         </label>
       </Legend>  
-      <TextInput 
+      <TextInput
+        required 
         name={PO_NUMBER}
         value={poNumber}
         onChange={handleInputChange}

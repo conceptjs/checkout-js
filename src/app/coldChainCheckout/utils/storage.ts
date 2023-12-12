@@ -8,7 +8,15 @@ const CCStorageSchema = {
   BCCustomer: "BCCustomer",
   CCAddresses: "CCAddresses",
   CCSelectShippingAddressId: "CCSelectShippingAddressId",
-  BCCart: "BCCart"
+  BCCart: "BCCart",
+  B3AuthToken: "B3AuthToken",
+  BCGroupName: "BCGroupName",
+  CCShipVia: "CCShipVia",
+  CCShipViaOptions: "CCShipViaOptions",
+  CCAllowOTS: "CCAllowOTS",
+  CCOTSAddress: "CCOTSAddress",
+  CCShippingMethod: "CCShippingMethod",
+  CCSelectedAddress: "CCSelectedAddress"
 }
 
 const clear = () => {

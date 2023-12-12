@@ -50,6 +50,7 @@
             "use_shipping_address_label": "My billing address is the same as my shipping address."
         },
         "cart": {
+            "EU_Company_text": "All prices are excluding VAT",
             "billed_amount_text": "*You will be charged and invoiced {total} ({code}) for this order.",
             "based_on_currency_text": "Based on {total} {code}",
             "cart_heading": "Order Summary",
@@ -58,7 +59,7 @@
             "downloads_action": "Go to Downloads",
             "edit_cart_action": "Edit Cart",
             "estimated_total_text": "Estimated Total",
-            "free_text": "Free",
+            "free_text": "NA",
             "gift_certificate_text": "Gift Certificate",
             "handling_text": "Handling",
             "item_count_text": "{count, plural, one{1 Item} other{# Items} }",
@@ -85,7 +86,7 @@
             "error_heading": "Something's gone wrong",
             "leave_warning": "Are you sure you want to leave? Data you have entered may not be saved.",
             "loading_text": "Loading",
-            "create_epicor_order_text": "Preparing an ERP order for you, we are almost done...",
+            "create_epicor_order_text": "Preparing an ERP order for you. We are almost done... The page will refresh automatically. Please do NOT refresh the page or click the Back button.",
             "ok_action": "Ok",
             "error_code": "Error code:",
             "request_id": "Request ID:",
@@ -174,7 +175,7 @@
             "unsupported_error": "The following payment methods are not supported by Embedded Checkout: {methods}. Please contact us for assistance."
         },
         "payment": {
-            "poNumber_label": "PO Number/Reference Number (Optional)",
+            "poNumber_label": "PO Number/Reference Number (Required)",
             "termsCode_label": "Payment Terms Code",
             "adyen_credit_debit_card_text": "Credit/Debit Card",
             "affirm_name_text": "Affirm",
@@ -413,10 +414,18 @@
             "cart_change_error": "An update to your shopping cart has been detected and your available shipping costs have been updated. Please re-select a shipping method to continue.",
             "enter_shipping_address_text": "Please enter a shipping address in order to see shipping quotes",
             "order_comment_label": "Order Comments",
-            "needBy_label": "Need By  (Optional)",
+            "needBy_label": "Need By  (Required)",
+            "needBy_help": "Date you need the order to ship from our facility.",
+            "needBy_note": "Actual Ship date will be confirmed on your Sales Order Acknowledgment",
+            "needBy_missing": "Need by date is required to create the order, please go back to Shipping section and select a need by date",
             "onlyShipWhenComplete_label": "Only ship when complete  (Optional)",
+            "onlyShipWhenComplete_help": "No partial shipments allowed.",
             "shippingPreference_label": "Shipping preferences  (Optional)",
+            "shippingPreference_help": "Any special shipping requests or instructions, such as <br /> DRIVER UNLOAD, PALLET JACK REQ'D, DELIVERY APPT NEEDED, etc.",
             "referLine_label": "Reference line  (Optional)",
+            "shipVia_label": "Ship Via  (Optional)",
+            "shipVia_help": "Method/type of courier service",
+            "referLine_help": "This field can be used as an attention line, a drop/ship PO#, or a mailstop.",
             "searchAddress_label": "Search addresses",
             "noAddress_label": "No shipping/billing address is available for this customer, please contact Cold Chain customer support.",
             "needByPlaceHolder_label": "Select a date",
@@ -439,7 +448,8 @@
             "shipping_method_label": "Shipping Method",
             "shipping_option_expired_error": "The shipping price you were quoted is no longer valid. Click OK to see the most up-to-date shipping prices.",
             "shipping_option_expired_heading": "Your shipping price has been updated",
-            "view_shipping_options_action": "See Other Options"
+            "view_shipping_options_action": "See Other Options",
+            "ship_cost": "Any applicable freight charges may be added"
         },
         "social": {
             "share_action": "Share",
@@ -462,7 +472,7 @@
         },
         "order_confirmation": {
             "order_number_text": "Your order number is <strong>{orderNumber}</strong>",
-            "order_pending_review_text": "Your order was sent to us but is currently awaiting payment. Once we receive the payment for your order, it will be completed. If you've already provided payment details then we will process your order manually and send you an email when it's completed.",
+            "order_pending_review_text": "Your order was sent to Client Services for review. Once the order is reviewed it will be processed.",
             "order_pending_status_text": "We've received your order and are processing your payment. Once the payment is verified, your order will be completed. We will send you an email when it's completed. Please note, this process may take a few minutes depending on the processing times of your chosen method. If you have any questions about your purchase, email us at <a href=\"mailto:{supportEmail}?Subject=Order {orderNumber}\" target=\"_top\">{supportEmail}</a>.",
             "order_incomplete_status_text": "We've received your order and payment. Your order is now being processed by our system. Please note, processing may take a few minutes. If you have any questions about your purchase, email us at <a href=\"mailto:{supportEmail}?Subject=Order {orderNumber}\" target=\"_top\">{supportEmail}</a>.",
             "order_with_downloadable_digital_items_text": "You can download your digital purchases by clicking the links on this page, or by logging into your account at any time. There is also a download link in your confirmation email, which should be arriving shortly.",

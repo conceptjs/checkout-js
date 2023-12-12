@@ -151,10 +151,15 @@ class MultiShippingForm extends PureComponent<MultiShippingFormProps & WithLangu
                         shouldDisableSubmit={ this.shouldDisableSubmit() }
                         shouldShowOrderComments={ shouldShowOrderComments }
                         shouldShowShippingOptions={ !hasUnassignedLineItems(consignments, cart.lineItems) }
+                        onContinueButton={this.onContinueButton}
                     />
                 </Form>
             </Fragment>
         );
+    }
+
+    private onContinueButton: React.MouseEventHandler<HTMLElement> = event => {
+        event;
     }
 
     private handleCloseErrorModal: () => void = () => {

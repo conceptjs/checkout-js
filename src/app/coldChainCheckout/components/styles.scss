@@ -20,7 +20,48 @@
 
 .cc-epicor-order-creation {
     font-size: 20px;
-    font-weight: 400;
+    font-weight: 600;
+    margin-left: auto;
+    margin-right: auto;
     padding-top: 20px;
     text-align: center;
+    width: 550px;
+}
+
+.cc-info-icon {
+    cursor: help;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.cc-info-icon-label {
+    color: black;
+    height: 15px;
+    width: 15px !important;
+}
+
+.cc-overlay-wrapper {
+    min-height: 90vh !important;
+}
+
+.cc-loading-spinner::before {
+    border-color: black black #d9d9d9 #d9d9d9 !important;
+}
+
+.redeemable-label {
+    display: none !important;
+}
+
+.cc-needby-note {
+    margin-top: 10px;
+}
+
+.cc_needBy_missing {
+    color: red;
+}
+
+#addr-methohd-default + label,
+#addr-method-ots + label {
+    margin-bottom: 15px !important;
+    margin-top: 15px !important;
 }

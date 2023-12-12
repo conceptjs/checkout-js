@@ -20,12 +20,12 @@ export interface BCTokenResponseBody {
   token?: string
 }
 
-export const getBcToken = async (): Promise<string | undefined> => {
+export const getBcToken = async (clientId:string | undefined): Promise<string | undefined> => {
   try {
     const response: BCResponse = await axios
       .get('/customer/current.jwt', {
         params: {
-          app_client_id: envConfig[env].clientId,
+          app_client_id: (clientId)?clientId:envConfig[env].clientId,
         },
       })
     if (response.status !== 200) {

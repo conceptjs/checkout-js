@@ -16,7 +16,7 @@ const LoadingSpinner: FunctionComponent<LoadingSpinnerProps> = ({
             className="loadingSpinner loadingOverlay-container"
             style={ { height: 100 } }
         >
-            <div className="loadingOverlay optimizedCheckout-overlay" />
+            <div className="loadingOverlay optimizedCheckout-overlay cc-loading-spinner" />
         </div>
     );
 };

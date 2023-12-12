@@ -5,6 +5,9 @@ import { CSSTransition } from 'react-transition-group';
 import { preventDefault } from '../common/dom';
 import { ShopperCurrency } from '../currency';
 
+//import { storage } from '../coldChainCheckout/utils';
+import { TranslatedString } from '../locale';
+
 export interface OrderSummaryPriceProps {
     label: ReactNode;
     amount?: number | null;
@@ -15,6 +18,7 @@ export interface OrderSummaryPriceProps {
     superscript?: string;
     actionLabel?: ReactNode;
     onActionTriggered?(): void;
+    isEUCompany?: boolean;
 }
 
 export interface OrderSummaryPriceState {
@@ -65,10 +69,15 @@ class OrderSummaryPrice extends Component<OrderSummaryPriceProps, OrderSummaryPr
             superscript,
             testId,
             zeroLabel,
+            isEUCompany
         } = this.props;
 
         const { highlight } = this.state;
         const displayValue = getDisplayValue(amount, zeroLabel);
+
+        //console.log("OrderSummaryPrice:isEUCompany:"+isEUCompany);
+
+        //const isEUCompany = (storage.BCGroupName.getValue())?storage.BCGroupName.getValue().startsWith("E"):false;
 
         return (
             <div data-test={ testId }>
@@ -120,6 +129,10 @@ class OrderSummaryPrice extends Component<OrderSummaryPriceProps, OrderSummaryPr
                         { children }
                     </div>
                 </CSSTransition>
+
+                {(testId == "cart-total") && isEUCompany && <span>
+                    <TranslatedString id="cart.EU_Company_text" /> 
+                </span>}
             </div>
         );
     }

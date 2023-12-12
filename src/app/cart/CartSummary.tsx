@@ -17,7 +17,11 @@ export type WithCheckoutCartSummaryProps = {
     storeCreditAmount?: number;
 } & RedeemableProps;
 
-const CartSummary: FunctionComponent<WithCheckoutCartSummaryProps> = ({
+export interface CartSummaryProps {
+    isEUCompany?: boolean;
+}
+
+const CartSummary: FunctionComponent<WithCheckoutCartSummaryProps & CartSummaryProps> = ({
     cartUrl,
     ...props
 }) => (

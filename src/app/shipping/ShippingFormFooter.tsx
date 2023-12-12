@@ -16,6 +16,7 @@ export interface ShippingFormFooterProps {
     shouldShowShippingOptions?: boolean;
     shouldDisableSubmit: boolean;
     isLoading: boolean;
+    onContinueButton: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 class ShippingFormFooter extends PureComponent<ShippingFormFooterProps> {
@@ -27,6 +28,7 @@ class ShippingFormFooter extends PureComponent<ShippingFormFooterProps> {
             shouldShowShippingOptions = true,
             shouldDisableSubmit,
             isLoading,
+            onContinueButton
         } = this.props;
 
         return <>
@@ -63,6 +65,7 @@ class ShippingFormFooter extends PureComponent<ShippingFormFooterProps> {
                     isLoading={ isLoading }
                     type="submit"
                     variant={ ButtonVariant.Primary }
+                    onClick={onContinueButton}
                 >
                     <TranslatedString id="common.continue_action" />
                 </Button>

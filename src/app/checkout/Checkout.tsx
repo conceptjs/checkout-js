@@ -84,6 +84,7 @@ export interface CheckoutState {
     isRedirecting: boolean;
     hasSelectedShippingOptions: boolean;
     creatingEpicorOrder: boolean;
+    isEUCompany: boolean;
 }
 
 export interface WithCheckoutProps {
@@ -116,7 +117,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         isRedirecting: false,
         isMultiShippingMode: false,
         hasSelectedShippingOptions: false,
-        creatingEpicorOrder: false
+        creatingEpicorOrder: false,
+        isEUCompany: false
     };
 
     private embeddedMessenger?: EmbeddedCheckoutMessenger;
@@ -154,8 +156,12 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             await CCCheckout.customer.init(data, checkoutService);
             var address = await ccService.api.getShippingAddress();
             storage.CCAddresses.setValue(JSON.stringify(address));
+            storage.BCGroupName.setValue(address.groupName);
+            storage.CCAllowOTS.setValue(""+address.AllowOTS);
+            storage.CCShipViaOptions.setValue(JSON.stringify(address.shipVias));
+            this.setState({isEUCompany: (address.groupName)?address.groupName.startsWith("E"):false});
 
-            address.billAddresses.countryCode = util.getCountryISOCodeFromName(address.billAddresses.country);
+            address.billAddresses.country_code = util.getCountryISOCodeFromName(address.billAddresses.country);
             await checkoutService.updateBillingAddress(address.billAddresses);
 
             const { links: { siteLink = '' } = {} } = data.getConfig() || {};
@@ -187,9 +193,11 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
             const consignments = data.getConsignments();
 
-            /*
+            
             if (consignments && consignments.length > 0 && consignments[0].shippingAddress &&
                 consignments[0].shippingAddress.customFields.length > 0) {
+                    checkoutService.updateShippingAddress(consignments[0].shippingAddress);
+                /*
                 var selectedShippingAddress = _.find(_.values(address.addresses), function(a:any){
                     return isEqualAddress(consignments[0].shippingAddress, a);
                 })
@@ -199,8 +207,9 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 }
                 
                 storage.CCSelectShippingAddressId.setValue(consignments[0].shippingAddress.customFields[0].fieldValue);
+                */
             }
-            */
+            
 
             if (this.props.steps.length == 4 && this.props.steps[2].isActive) {
                 this.props.steps[2].isActive = false;
@@ -262,7 +271,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             defaultStepType,
             isCartEmpty,
             isRedirecting,
-            creatingEpicorOrder
+            creatingEpicorOrder,
+            isEUCompany
         } = this.state;
 
         if (isCartEmpty) {
@@ -275,6 +285,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
 
         return (
+            <div className="cc-overlay-wrapper">
             <LoadingOverlay
                 hideContentWhenLoading
                 isLoading={isRedirecting}
@@ -295,8 +306,9 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                     </ol>
                 </div>
 
-                { this.renderCartSummary()}
+                { this.renderCartSummary(isEUCompany)}
             </LoadingOverlay>
+            </div>
         );
     }
 
@@ -390,6 +402,16 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             if (consignments[0].shippingAddress){
                 storage.CCSelectShippingAddressId.setValue(consignments[0].shippingAddress.customFields[0].fieldValue);
             }
+
+            storage.CCShippingMethod.setValue("buildIn");
+
+            //if (consignments[0].selectedShippingOption){
+            //    consignments[0].selectedShippingOption.description = "Any applicable freight charges may be added";
+            //}
+        }else if (consignments && consignments.length > 0 && consignments[0].shippingAddress &&
+            consignments[0].shippingAddress.customFields && consignments[0].shippingAddress.customFields.length == 0){
+            storage.CCShippingMethod.setValue("OTS");
+            storage.CCOTSAddress.setValue(JSON.stringify(consignments[0].shippingAddress));
         }
 
         return (
@@ -488,7 +510,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         );
     }
 
-    private renderCartSummary(): ReactNode {
+    private renderCartSummary(isEUCompany:boolean): ReactNode {
+        //console.log("renderCartSummary:isEUCompany:"+isEUCompany);
         return (
             <MobileView>
                 { matched => {
@@ -500,7 +523,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
                     return <aside className="layout-cart">
                         <LazyContainer>
-                            <CartSummary />
+                            <CartSummary isEUCompany={isEUCompany}/>
                         </LazyContainer>
                     </aside>;
                 }}
@@ -679,7 +702,11 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
 
         //if (isBillingSameAsShipping) {
-        this.navigateToNextIncompleteStep();
+        if (!this.props.steps[1].isComplete){
+            this.handleUnhandledError(new Error("Invalid Shipping Address, please double check!"));
+        }else{
+            this.navigateToNextIncompleteStep();
+        }
         //} else {
         //this.navigateToStep(CheckoutStepType.Payment);
         //}

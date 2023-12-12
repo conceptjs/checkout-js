@@ -98,6 +98,7 @@ const OrderSummarySubtotals: FunctionComponent<OrderSummarySubtotalsProps> = ({
                     key={ index }
                     label={ tax.name }
                     testId="cart-taxes"
+                    zeroLabel={ <TranslatedString id="cart.free_text" /> }
                 />
          ) }
 

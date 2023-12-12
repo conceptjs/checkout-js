@@ -1,28 +1,29 @@
 {
   "version": 2,
-  "appVersion": "1.189.0",
+  "appVersion": "1.189.1",
   "dynamicChunks": {
     "css": [
-      "billing-e15e5dfa.css",
+      "billing-a0359e88.css",
       "cart-summary~cart-summary-drawer-ad2d875f.css",
       "customer-1f3cba72.css",
-      "payment-8cbc3fde.css",
-      "shipping-44002772.css"
+      "payment-ba863060.css",
+      "shipping-9d06f0c4.css"
     ],
     "js": [
-      "billing-f0b4f9ae.js",
-      "cart-summary-drawer-fbcd26cb.js",
-      "cart-summary-152f9193.js",
-      "cart-summary~cart-summary-drawer-f5d264e8.js",
-      "customer-294ca627.js",
-      "order-summary-drawer-ec5ce446.js",
-      "order-summary-2312b725.js",
-      "payment-04b15c3e.js",
-      "shipping-d24985ce.js",
-      "vendors~billing~customer~payment~shipping-b0289de4.js",
-      "vendors~billing~customer~shipping-6d2a7ade.js",
-      "vendors~billing~payment~shipping-3f138c91.js",
-      "vendors~billing~shipping-9dab61b7.js"
+      "billing-5b8a013f.js",
+      "cart-summary-drawer-93588191.js",
+      "cart-summary-61344325.js",
+      "cart-summary~cart-summary-drawer-8c9ca4eb.js",
+      "customer-79ad5d3a.js",
+      "order-summary-drawer-4424b512.js",
+      "order-summary-044a9c51.js",
+      "payment-d82c5268.js",
+      "shipping-51567fcc.js",
+      "vendors~billing~customer~payment~shipping-3f84532a.js",
+      "vendors~billing~customer~shipping-9c962058.js",
+      "vendors~billing~payment~shipping-3f9c04ad.js",
+      "vendors~billing~shipping-373be78e.js",
+      "vendors~shipping-3137b498.js"
     ],
     "svg": [
       "static/card-abef8595.svg"
@@ -32,12 +33,12 @@
     ]
   },
   "js": [
-    "runtime-6dadffe9.js",
-    "polyfill~checkout-adab894f.js",
-    "transients~checkout-2beff0f3.js",
-    "sentry~checkout-558e85f1.js",
-    "vendors~checkout-e1dae4e3.js",
-    "checkout-14dc2d3b.js"
+    "runtime-61ecb808.js",
+    "polyfill~checkout-c1ec92af.js",
+    "transients~checkout-0e2dd81b.js",
+    "sentry~checkout-2e1802ef.js",
+    "vendors~checkout-268152eb.js",
+    "checkout-3328a217.js"
   ],
   "css": [
     "checkout-f12f958b.css"
